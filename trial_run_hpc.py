@@ -1,12 +1,7 @@
 import math
 
 from PIL import Image
-import requests
 import matplotlib.pyplot as plt
-# %config InlineBackend.figure_format = 'retina'
-
-# import ipywidgets as widgets
-# from IPython.display import display, clear_output
 import os
 import torch
 from torch import nn
@@ -86,8 +81,8 @@ model.eval()
 # url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
 # im = Image.open('/home/jostan/Downloads/images.jpeg')
 # im = Image.open(requests.get(url, stream=True).raw)
-img_dir = '/home/jostan/Documents/detr/coco_apples/test2017/'
-save_dir = 'apple_images_output2/'
+img_dir = './coco_apples/test2017/'
+save_dir = 'apple_images_output/'
 img_file_names = []
 # Get all the file names in the directory
 for file in os.listdir(img_dir):
