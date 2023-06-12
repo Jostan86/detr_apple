@@ -162,8 +162,8 @@ def build_apple_amodal_dataset(image_set, args):
     assert root.exists(), f'provided COCO path {root} does not exist'
     mode = 'instances'
     PATHS = {
-        "train": (root / "train_apples", root / "annotations_one_cat" / "modal" / f'{mode}_train.json'),
-        "val": (root / "val_apples", root / "annotations_one_cat" / "modal" / f'{mode}_val.json'),
+        "train": (root / "train_apples", root / "annotations_one_cat" / "amodal" / f'{mode}_train.json'),
+        "val": (root / "val_apples", root / "annotations_one_cat" / "amodal" / f'{mode}_val.json'),
     }
 
     img_folder, ann_file = PATHS[image_set]
@@ -175,8 +175,8 @@ def build_apple_modal_dataset(image_set, args):
     assert root.exists(), f'provided COCO path {root} does not exist'
     mode = 'instances'
     PATHS = {
-        "train": (root / "train_apples", root / "annotations_one_cat" / "amodal" / f'{mode}_train.json'),
-        "val": (root / "val_apples", root / "annotations_one_cat" / "amodal" / f'{mode}_val.json'),
+        "train": (root / "train_apples", root / "annotations_one_cat" / "modal" / f'{mode}_train.json'),
+        "val": (root / "val_apples", root / "annotations_one_cat" / "modal" / f'{mode}_val.json'),
     }
 
     img_folder, ann_file = PATHS[image_set]
