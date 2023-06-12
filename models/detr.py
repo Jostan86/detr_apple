@@ -315,6 +315,16 @@ def build(args):
         # for panoptic, we just add a num_classes that is large enough to hold
         # max_obj_id + 1, but the exact value doesn't really matter
         num_classes = 250
+    if args.dataset_file == "coco_apples_modal":
+        num_classes = 2
+    if args.dataset_file == "coco_apples_amodal":
+        num_classes = 2
+
+    num_classes_specified_at_run_time = args.num_classes
+    if num_classes_specified_at_run_time is not None:
+        # Override the value hard-coded in this file with the value specified at run-time
+        num_classes = num_classes_specified_at_run_time
+
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
