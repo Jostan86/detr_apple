@@ -2,13 +2,10 @@
 #SBATCH -J amodalFineTune						  # name of job
 #SBATCH -p dgx								  # name of partition or queue
 #SBATCH -o /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT/amodalFineTune-%a.out			  # name of output file for this submission script
-#SBATCH -e /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT/amodalFineTune-%a.err				  # name of error file for this submission script
-#SBATCH -t 0-12:00:00                # time limit for job (HH:MM:SS)
+#SBATCH -e /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT/amodalFineTune-%a.err				  # name of error file for this submission script1
+#SBATCH --gres=gpu:2
 
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
-#SBATCH --gpus-per-task=1
-
+module load python3
 source /nfs/hpc/share/browjost/detr_apple/venv/bin/activate
 
 # run my job (e.g. matlab, python)
