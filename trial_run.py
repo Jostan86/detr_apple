@@ -70,13 +70,15 @@ def plot_results(pil_img, prob, boxes, save=False, save_dir=None, img_file_name=
     plt.axis('off')
     if save:
         plt.savefig(save_dir + img_file_name)
-    plt.show()
+    # Close the plot
+    plt.close()
+    # plt.show()
 
 
 
-# model = torch.hub.load('facebookresearch/detr', 'detr_resnet50_dc5', pretrained=True)
+# model = torch.hub.load('facebookresearch/detr', 'detr_resnet50', pretrained=True)
 model = torch.hub.load('facebookresearch/detr', 'detr_resnet50', pretrained=True)
-checkpoint = torch.load('./logdirs/2/checkpoint.pth')
+checkpoint = torch.load('./logdirs/5/checkpoint.pth')
 # checkpoint = torch.load('./logdirs/1/checkpoint.pth', map_location='cpu')
 model_state_dict = checkpoint['model']
 model.load_state_dict(model_state_dict)
@@ -87,7 +89,7 @@ model.eval()
 # im = Image.open('/home/jostan/Downloads/images.jpeg')
 # im = Image.open(requests.get(url, stream=True).raw)
 img_dir = '/home/jostan/Documents/detr/coco_apples/test2017/'
-save_dir = 'apple_images_output/'
+save_dir = 'apple_images_output4/'
 img_file_names = []
 # Get all the file names in the directory
 for file in os.listdir(img_dir):
@@ -112,7 +114,7 @@ for img_file_name in img_file_names:
 
     # keep only predictions with 0.7+ confidence
     probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-    keep = probas.max(-1).values > 0.9
+    keep = probas.max(-1).values > 0.8
 
     # convert boxes from [0; 1] to image scales
     bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], im.size)
