@@ -3,7 +3,7 @@ import torch.utils.data
 import torchvision
 
 from .coco import build as build_coco
-from .coco import build_apple_amodal_dataset, build_apple_modal_dataset
+from .coco import build_apple_amodal_dataset, build_apple_modal_dataset, build_apple_amodal_synth_dataset, build_apple_modal_synth_dataset
 
 
 def get_coco_api_from_dataset(dataset):
@@ -23,6 +23,10 @@ def build_dataset(image_set, args):
         return build_apple_modal_dataset(image_set, args)
     if args.dataset_file == 'coco_apples_amodal':
         return build_apple_amodal_dataset(image_set, args)
+    if args.dataset_file == 'coco_apples_amodal_synth':
+        return build_apple_amodal_synth_dataset(image_set, args)
+    if args.dataset_file == 'coco_apples_modal_synth':
+        return build_apple_modal_synth_dataset(image_set, args)
     if args.dataset_file == 'coco_panoptic':
         # to avoid making panopticapi required for coco
         from .coco_panoptic import build as build_coco_panoptic
