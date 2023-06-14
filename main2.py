@@ -248,3 +248,9 @@ if __name__ == '__main__':
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
+
+#python3 -m torch.distributed.launch --nproc_per_node=1 --use_env main2.py --masks --epochs 25 --lr_drop 15
+# --coco_path ./coco_apples/ --batch_size 2  --output_dir ./logdirs/1 --dataset_file coco_apples_modal --frozen_weights ./logdirs/8/checkpoint.pth
+
+
+
