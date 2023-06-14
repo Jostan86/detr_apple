@@ -319,6 +319,10 @@ def build(args):
         num_classes = 2
     if args.dataset_file == "coco_apples_amodal":
         num_classes = 2
+    if args.dataset_file == "coco_apples_amodal_synth":
+        num_classes = 2
+    if args.dataset_file == "coco_apples_modal_synth":
+        num_classes = 2
 
     num_classes_specified_at_run_time = args.num_classes
     if num_classes_specified_at_run_time is not None:
