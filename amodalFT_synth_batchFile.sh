@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -J amodalFineTune						  # name of job
 #SBATCH -p dgx								  # name of partition or queue
-#SBATCH -o /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT/amodalFineTune-%a.out			  # name of output file for this submission script
-#SBATCH -e /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT/amodalFineTune-%a.err				  # name of error file for this submission script1
+#SBATCH -o /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT_sy/amodalFineTune-%a.out			  # name of output file for this submission script
+#SBATCH -e /nfs/hpc/share/browjost/detr_apple/logdirs/amodalFT_sy/amodalFineTune-%a.err				  # name of error file for this submission script1
 #SBATCH --gres=gpu:2
 
 module load python3
