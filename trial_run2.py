@@ -99,7 +99,7 @@ model = torch.hub.load('facebookresearch/detr',
                        pretrained=False,
                        num_classes=2)
 
-checkpoint = torch.load('logdirs/11/checkpoint.pth',
+checkpoint = torch.load('logdirs/modalFT_sy/checkpoint.pth',
                         map_location='cpu')
 
 model.load_state_dict(checkpoint['model'],

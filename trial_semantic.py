@@ -56,7 +56,7 @@ model.eval()
 url = "http://images.cocodataset.org/val2017/000000281759.jpg"
 im = Image.open(requests.get(url, stream=True).raw)
 
-img_dir = '/home/jostan/Documents/Amodal_Fruit_Sizing/datasets/data/images/test/'
+img_dir = './coco_apples/test_apples/'
 save_dir = 'apple_images_output_seg1/'
 img_file_names = []
 

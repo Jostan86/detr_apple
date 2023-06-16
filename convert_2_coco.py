@@ -14,12 +14,16 @@ save_sub_directory = ['modal/instances_train.json', 'amodal/instances_train.json
                         'modal/instances_test.json', 'amodal/instances_test.json']
 
 
-# with open('/home/jostan/Documents/detr/coco2017/annotations/instances_val2017.json') as f:
-#     data_coco = json.load(f)
+with open('/home/jostan/Documents/detr/coco2017/annotations/instances_val2017.json') as f:
+    data_coco = json.load(f)
+
+anno = data_coco["annotations"][0]
+
+anno = [obj for obj in anno if 'iscrowd' not in obj or obj['iscrowd'] == 0]
 
 for idx, (file_path, save_path) in enumerate(zip(files_sub_directory, save_sub_directory)):
     file_path = files_base_directory + file_path
-    save_path = save_base_directory + save_path
+    # save_path = save_base_directory + save_path
 
     with open(file_path) as f:
         annotation_data = json.load(f)
@@ -108,5 +112,5 @@ for idx, (file_path, save_path) in enumerate(zip(files_sub_directory, save_sub_d
         'annotations': annotations
     }
 
-    with open(save_path, 'w') as f:
-        json.dump(coco_data, f)
+    # with open(save_path, 'w') as f:
+    #     json.dump(coco_data, f)

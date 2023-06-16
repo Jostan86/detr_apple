@@ -80,7 +80,7 @@ model.eval()
 
 # url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
 # im = Image.open('/home/jostan/Downloads/images.jpeg')
-# im = Image.open(requests.get(url, stream=True).raw)
+# im = Image.open(requests.get(url, stream=True).raw).
 img_dir = './coco_apples/test2017/'
 save_dir = 'apple_images_output/'
 img_file_names = []

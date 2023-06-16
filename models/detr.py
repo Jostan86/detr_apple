@@ -161,7 +161,7 @@ class SetCriterion(nn.Module):
         losses['loss_giou'] = loss_giou.sum() / num_boxes
         return losses
 
-    def loss_masks(self, outputs, targets, indices, num_boxes):
+    def loss_masks_amodal(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the masks: the focal loss and the dice loss.
            targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
         """
@@ -171,7 +171,7 @@ class SetCriterion(nn.Module):
         tgt_idx = self._get_tgt_permutation_idx(indices)
         src_masks = outputs["pred_masks"]
         src_masks = src_masks[src_idx]
-        masks = [t["masks"] for t in targets]
+        masks = [t["amodal_masks"] for t in targets]
         # TODO use valid to mask invalid areas due to padding in loss
         target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
         target_masks = target_masks.to(src_masks)
@@ -185,8 +185,37 @@ class SetCriterion(nn.Module):
         target_masks = target_masks.flatten(1)
         target_masks = target_masks.view(src_masks.shape)
         losses = {
-            "loss_mask": sigmoid_focal_loss(src_masks, target_masks, num_boxes),
-            "loss_dice": dice_loss(src_masks, target_masks, num_boxes),
+            "loss_mask_amodal": sigmoid_focal_loss(src_masks, target_masks, num_boxes),
+            "loss_dice_amodal": dice_loss(src_masks, target_masks, num_boxes),
+        }
+        return losses
+
+    def loss_masks_modal(self, outputs, targets, indices, num_boxes):
+        """Compute the losses related to the modal masks: the focal loss and the dice loss.
+           targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
+        """
+        assert "pred_visible_masks" in outputs
+
+        src_idx = self._get_src_permutation_idx(indices)
+        tgt_idx = self._get_tgt_permutation_idx(indices)
+        src_masks = outputs["pred_visible_masks"]
+        src_masks = src_masks[src_idx]
+        masks = [t["modal_masks"] for t in targets]
+        # TODO use valid to mask invalid areas due to padding in loss
+        target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
+        target_masks = target_masks.to(src_masks)
+        target_masks = target_masks[tgt_idx]
+
+        # upsample predictions to the target size
+        src_masks = interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+                                mode="bilinear", align_corners=False)
+        src_masks = src_masks[:, 0].flatten(1)
+
+        target_masks = target_masks.flatten(1)
+        target_masks = target_masks.view(src_masks.shape)
+        losses = {
+            "loss_mask_modal": sigmoid_focal_loss(src_masks, target_masks, num_boxes),
+            "loss_dice_modal": dice_loss(src_masks, target_masks, num_boxes),
         }
         return losses
 
@@ -207,7 +236,8 @@ class SetCriterion(nn.Module):
             'labels': self.loss_labels,
             'cardinality': self.loss_cardinality,
             'boxes': self.loss_boxes,
-            'masks': self.loss_masks
+            'modal_masks': self.loss_masks_modal,
+            'amodal_masks': self.loss_masks_amodal
         }
         assert loss in loss_map, f'do you really want to compute {loss} loss?'
         return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
@@ -241,7 +271,7 @@ class SetCriterion(nn.Module):
             for i, aux_outputs in enumerate(outputs['aux_outputs']):
                 indices = self.matcher(aux_outputs, targets)
                 for loss in self.losses:
-                    if loss == 'masks':
+                    if loss == 'modal_masks' or loss == 'amodal_masks':
                         # Intermediate masks losses are too costly to compute, we ignore them.
                         continue
                     kwargs = {}
@@ -323,6 +353,8 @@ def build(args):
         num_classes = 2
     if args.dataset_file == "coco_apples_modal_synth":
         num_classes = 2
+    if args.dataset_file == "coco_apples_both_masks":
+        num_classes = 2
 
     num_classes_specified_at_run_time = args.num_classes
     if num_classes_specified_at_run_time is not None:
@@ -348,8 +380,11 @@ def build(args):
     weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
     weight_dict['loss_giou'] = args.giou_loss_coef
     if args.masks:
-        weight_dict["loss_mask"] = args.mask_loss_coef
-        weight_dict["loss_dice"] = args.dice_loss_coef
+        weight_dict["loss_mask_modal"] = args.mask_loss_coef
+        weight_dict["loss_dice_modal"] = args.dice_loss_coef
+        weight_dict["loss_mask_amodal"] = args.mask_loss_coef
+        weight_dict["loss_dice_amodal"] = args.dice_loss_coef
+
     # TODO this is a hack
     if args.aux_loss:
         aux_weight_dict = {}
@@ -359,13 +394,15 @@ def build(args):
 
     losses = ['labels', 'boxes', 'cardinality']
     if args.masks:
-        losses += ["masks"]
+        losses += ["modal_masks"]
+        losses += ["amodal_masks"]
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
                              eos_coef=args.eos_coef, losses=losses)
     criterion.to(device)
     postprocessors = {'bbox': PostProcess()}
     if args.masks:
-        postprocessors['segm'] = PostProcessSegm()
+        postprocessors['segm_modal'] = PostProcessSegm(modal_masks=True)
+        postprocessors['segm_amodal'] = PostProcessSegm(modal_masks=False)
         if args.dataset_file == "coco_panoptic":
             is_thing_map = {i: i <= 90 for i in range(201)}
             postprocessors["panoptic"] = PostProcessPanoptic(is_thing_map, threshold=0.85)

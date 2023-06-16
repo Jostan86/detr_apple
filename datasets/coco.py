@@ -14,19 +14,36 @@ from pycocotools import mask as coco_mask
 import datasets.transforms as T
 
 
-class CocoDetection(torchvision.datasets.CocoDetection):
+class CocoDetectionSplitter(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms, return_masks):
-        super(CocoDetection, self).__init__(img_folder, ann_file)
+        super(CocoDetectionSplitter, self).__init__(img_folder, ann_file)
+
         self._transforms = transforms
         self.prepare = ConvertCocoPolysToMask(return_masks)
 
     def __getitem__(self, idx):
-        img, target = super(CocoDetection, self).__getitem__(idx)
+        img, target = super(CocoDetectionSplitter, self).__getitem__(idx)
         image_id = self.ids[idx]
         target = {'image_id': image_id, 'annotations': target}
         img, target = self.prepare(img, target)
         if self._transforms is not None:
             img, target = self._transforms(img, target)
+        return img, target
+
+
+class CocoDetection(torchvision.datasets.CocoDetection):
+    def __init__(self, img_folder, ann_file_modal, ann_file_amodal, transforms, return_masks):
+        super(CocoDetection, self).__init__(img_folder, ann_file_modal)
+        self.amodal_loader = CocoDetectionSplitter(img_folder, ann_file_amodal, transforms, return_masks)
+        self.modal_loader = CocoDetectionSplitter(img_folder, ann_file_modal, transforms, return_masks)
+
+    def __getitem__(self, idx):
+        _, target_modal = self.modal_loader[idx]
+        img, target = self.amodal_loader[idx]
+
+        target['amodal_masks'] = target.pop('masks')
+        target['modal_masks'] = target_modal['masks']
+
         return img, target
 
 
@@ -181,6 +198,18 @@ def build_apple_modal_dataset(image_set, args):
 
     img_folder, ann_file = PATHS[image_set]
     dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks)
+    return dataset
+
+def build_apple_dataset_both_masks(image_set, args):
+    root = Path(args.coco_path)
+    assert root.exists(), f'provided COCO path {root} does not exist'
+    mode = 'instances'
+    PATHS = {
+        "train": (root / "train_apples", root / "annotations_one_cat" / "modal" / f'{mode}_train.json', root / "annotations_one_cat" / "amodal" / f'{mode}_train.json'),
+        "val": (root / "val_apples", root / "annotations_one_cat" / "modal" / f'{mode}_val.json', root / "annotations_one_cat" / "amodal" / f'{mode}_val.json'),
+    }
+    img_folder, ann_file_modal, ann_file_amodal = PATHS[image_set]
+    dataset = CocoDetection(img_folder, ann_file_modal, ann_file_amodal, transforms=make_coco_transforms(image_set), return_masks=args.masks)
     return dataset
 
 def build_apple_modal_synth_dataset(image_set, args):

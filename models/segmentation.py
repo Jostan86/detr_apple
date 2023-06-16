@@ -32,7 +32,8 @@ class DETRsegm(nn.Module):
 
         hidden_dim, nheads = detr.transformer.d_model, detr.transformer.nhead
         self.bbox_attention = MHAttentionMap(hidden_dim, hidden_dim, nheads, dropout=0.0)
-        self.mask_head = MaskHeadSmallConv(hidden_dim + nheads, [1024, 512, 256], hidden_dim)
+        self.mask_head_modal = MaskHeadSmallConv(hidden_dim + nheads, [1024, 512, 256], hidden_dim)
+        self.mask_head_amodal = MaskHeadSmallConv(hidden_dim + nheads, [1024, 512, 256], hidden_dim)
 
     def forward(self, samples: NestedTensor):
         if isinstance(samples, (list, torch.Tensor)):
@@ -55,10 +56,19 @@ class DETRsegm(nn.Module):
         # FIXME h_boxes takes the last one computed, keep this in mind
         bbox_mask = self.bbox_attention(hs[-1], memory, mask=mask)
 
-        seg_masks = self.mask_head(src_proj, bbox_mask, [features[2].tensors, features[1].tensors, features[0].tensors])
-        outputs_seg_masks = seg_masks.view(bs, self.detr.num_queries, seg_masks.shape[-2], seg_masks.shape[-1])
+        amodal_seg_masks = self.mask_head_amodal(src_proj, bbox_mask, [features[2].tensors, features[1].tensors,
+                                                          features[0].tensors])
+        outputs_seg_masks_amodal = amodal_seg_masks.view(bs, self.detr.num_queries, amodal_seg_masks.shape[-2],
+                                                   amodal_seg_masks.shape[-1])
 
-        out["pred_masks"] = outputs_seg_masks
+        modal_seg_masks = self.mask_head_modal(src_proj, bbox_mask, [features[2].tensors, features[1].tensors,
+                                                                features[0].tensors])
+        outputs_seg_masks_modal = modal_seg_masks.view(bs, self.detr.num_queries, modal_seg_masks.shape[-2],
+                                                  modal_seg_masks.shape[-1])
+
+        out["pred_visible_masks"] = outputs_seg_masks_modal
+        out["pred_masks"] = outputs_seg_masks_amodal
+
         return out
 
 
@@ -216,25 +226,36 @@ def sigmoid_focal_loss(inputs, targets, num_boxes, alpha: float = 0.25, gamma: f
 
 
 class PostProcessSegm(nn.Module):
-    def __init__(self, threshold=0.5):
+    def __init__(self, threshold=0.5, modal_masks=False):
         super().__init__()
         self.threshold = threshold
+        self.vis_masks = modal_masks
 
     @torch.no_grad()
     def forward(self, results, outputs, orig_target_sizes, max_target_sizes):
         assert len(orig_target_sizes) == len(max_target_sizes)
         max_h, max_w = max_target_sizes.max(0)[0].tolist()
-        outputs_masks = outputs["pred_masks"].squeeze(2)
+        if self.vis_masks:
+            outputs_masks = outputs["pred_visible_masks"].squeeze(2)
+        else:
+            outputs_masks = outputs["pred_masks"].squeeze(2)
         outputs_masks = F.interpolate(outputs_masks, size=(max_h, max_w), mode="bilinear", align_corners=False)
         outputs_masks = (outputs_masks.sigmoid() > self.threshold).cpu()
 
-        for i, (cur_mask, t, tt) in enumerate(zip(outputs_masks, max_target_sizes, orig_target_sizes)):
-            img_h, img_w = t[0], t[1]
-            results[i]["masks"] = cur_mask[:, :img_h, :img_w].unsqueeze(1)
-            results[i]["masks"] = F.interpolate(
-                results[i]["masks"].float(), size=tuple(tt.tolist()), mode="nearest"
-            ).byte()
-
+        if self.vis_masks:
+            for i, (cur_mask, t, tt) in enumerate(zip(outputs_masks, max_target_sizes, orig_target_sizes)):
+                img_h, img_w = t[0], t[1]
+                results[i]["modal_masks"] = cur_mask[:, :img_h, :img_w].unsqueeze(1)
+                results[i]["modal_masks"] = F.interpolate(
+                    results[i]["modal_masks"].float(), size=tuple(tt.tolist()), mode="nearest"
+                ).byte()
+        else:
+            for i, (cur_mask, t, tt) in enumerate(zip(outputs_masks, max_target_sizes, orig_target_sizes)):
+                img_h, img_w = t[0], t[1]
+                results[i]["amodal_masks"] = cur_mask[:, :img_h, :img_w].unsqueeze(1)
+                results[i]["amodal_masks"] = F.interpolate(
+                    results[i]["amodal_masks"].float(), size=tuple(tt.tolist()), mode="nearest"
+                ).byte()
         return results
 
 
